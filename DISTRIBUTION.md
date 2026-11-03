@@ -116,6 +116,24 @@ In **Settings → Auto-typer**:
 
 ## 8. Updating
 
+### Recruiter screening preparation
+
+Use **Preparação RH** to review common screening questions in English and
+Portuguese. Prepared answers are stored in local settings; reviewing them does
+not use audio or API credits. **Praticar esta pergunta com IA** generates an
+answer using the saved CV and recruiter context.
+
+In **Settings → Preparação para a recrutadora**, confirm current employment,
+start date, weekly availability and the facts already shared with the recruiter.
+**Ativar preparação RH** selects short English answers, Portuguese translation
+and manual generation. Click **Save** after editing Settings.
+
+The live view keeps the original question and Portuguese translation visible
+above the answer, with independent scrolling. Use **A− / A+** to resize the
+answer text. In manual mode, translation appears on capture; generate the
+answer using the button or **Ctrl+Shift+R**. Missing logistics are left unknown
+instead of inventing a notice period, weekly schedule or salary.
+
 Currently manual: download the new `Setup.exe` and run it — it upgrades in
 place. Settings and session logs are preserved across updates.
 

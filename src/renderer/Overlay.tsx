@@ -10,6 +10,10 @@ import {
   type SolutionInfo,
 } from '../shared/types';
 
+import { HrPreparation } from './HrPreparation';
+import { recruiterPreset } from '../shared/hrPreparation';
+import './interview.css';
+
 const LANGS: InterviewLanguage[] = ['en', 'pt', 'es'];
 
 const STATUS_TEXT: Record<OverlayState['status'], string> = {
@@ -48,6 +52,9 @@ export function Overlay() {
   });
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [fontSize, setFontSize] = useState(20);
+  const [presetBusy, setPresetBusy] = useState(false);
   const captureRef = useRef<AudioCapture | null>(null);
   const [level, setLevel] = useState(0);
   const [mode, setMode] = useState<AppMode>('interview');
@@ -248,12 +255,11 @@ export function Overlay() {
     }
   }, [state.suggestedResponse]);
 
-  // Generate an answer for a given question. Does NOT pre-clear the old answer —
-  // the first streamed token replaces it, avoiding a blank flash.
+  // Keep the question, translation and response from the same turn together.
   const fireAnswer = useCallback((q: string) => {
     if (!q.trim()) return;
     setPending(false);
-    setState((st) => ({ ...st, transcript: q, status: 'responding' }));
+    setState((st) => ({ ...st, transcript: q, translation: '', suggestedResponse: '', error: undefined, status: 'responding' }));
     const p = pendingSttRef.current;
     setTimings({
       audioMs: p?.durationMs ?? 0,
@@ -376,8 +382,13 @@ export function Overlay() {
           pendingSttRef.current = { durationMs: Math.round(durationMs), sttMs };
           if (triggerRef.current === 'manual') {
             // Capture and display the question, but wait for an explicit trigger.
-            setState((st) => ({ ...st, transcript: cleaned, status: 'listening' }));
+            setState((st) => ({ ...st, transcript: cleaned, translation: '', suggestedResponse: '', error: undefined, status: 'listening' }));
             setPending(true);
+            if (fresh.showTranslation) {
+              void window.api.translateLine(cleaned).then((translation) => {
+                setState((st) => st.transcript === cleaned && st.status === 'listening' ? { ...st, translation } : st);
+              }).catch(() => { /* The answer request can still translate the question. */ });
+            }
             return;
           }
           fireAnswer(cleaned);
@@ -410,6 +421,22 @@ export function Overlay() {
 
   return (
     <div style={styles.container}>
+      <div className="workspace-tabs">
+        <button aria-pressed={!preparing} onClick={() => setPreparing(false)}>Entrevista ao vivo</button>
+        <button aria-pressed={preparing} onClick={() => setPreparing(true)}>Preparação RH</button>
+        {!settings?.recruiterContext && <button disabled={presetBusy} onClick={async () => {
+          setPresetBusy(true);
+          try {
+            const updated = await window.api.saveSettings(recruiterPreset());
+            setSettings(updated);
+            setInterviewStyle('hr');
+            setInterviewLanguage('en');
+            setPreparing(true);
+          } catch (err) { setState((st) => ({ ...st, error: (err as Error).message })); }
+          finally { setPresetBusy(false); }
+        }}>{presetBusy ? 'Preparando…' : 'Preparar entrevista RH'}</button>}
+        <span>{interviewStyle === 'hr' ? 'Recrutadora' : 'Técnica'} / {LANGUAGE_LABELS[interviewLanguage]}</span>
+      </div>
       <div style={styles.header}>
         <span style={{ ...styles.dot, background: STATUS_COLOR[state.status] }} />
         <span style={styles.headerTitle}>{STATUS_TEXT[state.status]}</span>
@@ -581,7 +608,7 @@ export function Overlay() {
       )}
 
       <div
-        style={styles.scrollArea}
+        style={{ ...styles.scrollArea, ...(mode === 'interview' && !preparing ? { display: 'flex', flexDirection: 'column', overflow: 'hidden' } : {}) }}
         ref={mode === 'listen' ? logScrollRef : undefined}
         onScroll={
           mode === 'listen'
@@ -592,7 +619,18 @@ export function Overlay() {
             : undefined
         }
       >
-        {mode === 'listen' ? (
+        {preparing && settings ? <HrPreparation settings={settings} onPractice={async (q) => {
+          try {
+            const updated = await window.api.saveSettings({ interviewStyle: 'hr', interviewLanguage: 'en', showTranslation: true, answerLength: 'concise' });
+            setSettings(updated);
+            setInterviewStyle('hr');
+            setInterviewLanguage('en');
+            setPreparing(false);
+            modeRef.current = 'interview';
+            setMode('interview');
+            fireAnswer(q);
+          } catch (err) { setState((st) => ({ ...st, error: (err as Error).message })); }
+        }} /> : mode === 'listen' ? (
           transcriptLog.length === 0 ? (
             <div style={styles.emptyState}>
               <div style={styles.emptyIcon}>{running ? '🎧' : '📝'}</div>
@@ -622,61 +660,34 @@ export function Overlay() {
           )
         ) : (
           <>
-        {state.transcript && (
-          <Section
-            label="Interviewer"
-            content={state.transcript}
-            priority="low"
-            collapsible
-          />
-        )}
-        {state.translation && (
-          <Section label="Tradução PT" content={state.translation} priority="medium" />
-        )}
-        {state.suggestedResponse && mode === 'interview' && (() => {
-          const { spoken, probe } = splitSpokenProbe(state.suggestedResponse);
-          return (
-            <Section label="Suggested Answer" content={spoken} priority="high">
-              {probe && (
-                <div style={styles.probeBox}>
-                  <div style={styles.probeLabel}>RESERVE — if they probe (don't read aloud)</div>
-                  <div style={styles.probeText}>{probe}</div>
-                </div>
-              )}
-              <div style={styles.actions}>
-                <button
-                  style={{ ...styles.actionBtn, ...styles.actionBtnPrimary }}
-                  onClick={handleCopy}
-                >
-                  {copied ? '✓ Copied' : 'Copy'}
-                  <kbd style={styles.kbd}>⌃⇧C</kbd>
-                </button>
-                <button style={styles.actionBtn} onClick={handleRegenerate}>
-                  Regenerate
-                  <kbd style={styles.kbd}>⌃⇧R</kbd>
-                </button>
-              </div>
-            </Section>
-          );
-        })()}
-
-        {!state.transcript && !state.translation && (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyIcon}>{running ? '🎧' : '👋'}</div>
-            <div style={styles.emptyTitle}>
-              {running
-                ? 'Listening for the interviewer…'
-                : needsConfig
-                  ? 'Setup required'
-                  : 'Ready when you are'}
-            </div>
-            <div style={styles.emptyHint}>
-              {running
-                ? 'Translation and answer will appear here as they speak.'
-                : 'Click Start session to begin capturing.'}
-            </div>
+        <div className="interview-workspace">
+          <div className="question-pair">
+            <section className="question-pane" aria-label="Pergunta original">
+              <h2>Pergunta original</h2>
+              <p>{state.transcript || (running ? 'Ouvindo a recrutadora…' : 'Inicie a sessão ou pratique uma pergunta na preparação RH.')}</p>
+            </section>
+            <section className="question-pane translation" aria-label="Tradução da pergunta">
+              <h2>Tradução em português</h2>
+              <p>{state.translation || (!settings?.showTranslation ? 'Ative a tradução em Settings ou em Preparar entrevista RH.' : pending || state.status === 'responding' ? 'Traduzindo a pergunta…' : 'A tradução da pergunta aparecerá aqui.')}</p>
+            </section>
           </div>
-        )}
+          <section className="answer-pane" aria-label="Resposta sugerida">
+            <div className="answer-toolbar">
+              <h2>Sua resposta / {LANGUAGE_LABELS[interviewLanguage]}</h2>
+              <button aria-label="Diminuir letra" disabled={fontSize <= 16} onClick={() => setFontSize((n) => Math.max(16, n - 2))}>A−</button>
+              <button aria-label="Aumentar letra" disabled={fontSize >= 28} onClick={() => setFontSize((n) => Math.min(28, n + 2))}>A+</button>
+              <button disabled={!state.suggestedResponse} onClick={handleCopy}>{copied ? 'Copiado ✓' : 'Copiar'}</button>
+              <button disabled={!state.transcript || state.status === 'responding'} onClick={handleRegenerate}>{pending ? 'Gerar resposta' : 'Gerar novamente'}</button>
+            </div>
+            <div className="answer-scroll">
+              {state.suggestedResponse ? (() => {
+                const { spoken, probe } = splitSpokenProbe(state.suggestedResponse);
+                return <><p className="answer-text" style={{ fontSize }} lang={interviewLanguage}>{spoken}</p>
+                  {probe && <details><summary>Se ela pedir mais detalhes</summary>{probe}</details>}</>;
+              })() : <p className="prep-hint">{state.status === 'responding' ? 'Preparando uma resposta curta…' : pending ? 'Pergunta capturada. Clique em Gerar resposta ou pressione Ctrl+Shift+R.' : 'Sua resposta aparece aqui, com letra maior e rolagem independente.'}</p>}
+            </div>
+          </section>
+        </div>
           </>
         )}
 
@@ -695,75 +706,6 @@ export function Overlay() {
       <div style={styles.footer}>
         <span>⌃⇧H hide · ⌃⇧R regen · ⌃⇧C copy</span>
       </div>
-    </div>
-  );
-}
-
-function Section({
-  label,
-  content,
-  priority,
-  collapsible,
-  children,
-}: {
-  label: string;
-  content: string;
-  priority: 'high' | 'medium' | 'low';
-  collapsible?: boolean;
-  children?: React.ReactNode;
-}) {
-  const [collapsed, setCollapsed] = useState(collapsible);
-  // Reset collapsed when new content arrives
-  const lastContentRef = useRef('');
-  useEffect(() => {
-    if (content !== lastContentRef.current) {
-      lastContentRef.current = content;
-    }
-  }, [content]);
-
-  const sectionStyle =
-    priority === 'high'
-      ? styles.sectionHigh
-      : priority === 'medium'
-        ? styles.sectionMedium
-        : styles.sectionLow;
-  const contentStyle =
-    priority === 'high'
-      ? styles.contentHigh
-      : priority === 'medium'
-        ? styles.contentMedium
-        : styles.contentLow;
-
-  // Split paragraphs for better readability
-  const paragraphs = content.split(/\n\s*\n/).filter((p) => p.trim());
-
-  return (
-    <div style={{ ...styles.section, ...sectionStyle }}>
-      <div
-        style={{ ...styles.sectionLabel, cursor: collapsible ? 'pointer' : 'default' }}
-        onClick={() => collapsible && setCollapsed((c) => !c)}
-      >
-        <span style={styles.sectionLabelText}>{label}</span>
-        {collapsible && (
-          <span style={styles.sectionToggle}>{collapsed ? '▸ show' : '▾ hide'}</span>
-        )}
-      </div>
-      {!collapsed && (
-        <>
-          <div style={contentStyle}>
-            {paragraphs.length > 0 ? (
-              paragraphs.map((p, i) => (
-                <p key={i} style={styles.paragraph}>
-                  {p}
-                </p>
-              ))
-            ) : (
-              <p style={styles.paragraph}>{content}</p>
-            )}
-          </div>
-          {children}
-        </>
-      )}
     </div>
   );
 }
@@ -941,6 +883,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 14,
     overflow: 'hidden',
     minWidth: 400,
+    boxSizing: 'border-box',
     backdropFilter: 'blur(20px) saturate(180%)',
     WebkitBackdropFilter: 'blur(20px) saturate(180%)',
     border: '0.5px solid rgba(255,255,255,0.08)',
@@ -952,7 +895,8 @@ const styles: Record<string, React.CSSProperties> = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
+    flexWrap: 'wrap',
     padding: '10px 14px',
     background: 'rgba(255,255,255,0.025)',
     borderBottom: '0.5px solid rgba(255,255,255,0.06)',
@@ -1176,6 +1120,7 @@ const styles: Record<string, React.CSSProperties> = {
   } as React.CSSProperties,
   scrollArea: {
     flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
     overflowX: 'hidden',
     scrollbarWidth: 'thin',

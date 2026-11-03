@@ -36,8 +36,10 @@ function createOverlay() {
   }
   overlayWin = new BrowserWindow({
     title: 'Interview Copilot',
-    width: 440,
-    height: 620,
+    width: 760,
+    height: 820,
+    minWidth: 420,
+    minHeight: 580,
     x: 20,
     y: 80,
     transparent: true,

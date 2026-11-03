@@ -4,6 +4,7 @@ import { IPC, LANGUAGE_NAMES, type AssistanceResult, type CodingMessage } from '
 import { getAnthropicKey, getSettings } from './store';
 import { getSolutionBundle } from './solution';
 import { logCoding, logInterview } from './sessionLog';
+import { screeningFacts } from '../shared/hrPreparation';
 
 const TRANSLATION_MARK = '<<<TRANSLATION>>>';
 const RESPONSE_MARK = '<<<RESPONSE>>>';
@@ -29,7 +30,7 @@ function buildSystemBlocks(): Anthropic.Messages.TextBlockParam[] {
   // technical examples.
   const examples =
     s.interviewStyle === 'hr'
-      ? (s.hrExamples.trim() || s.examples.trim())
+      ? s.hrExamples.trim()
       : s.examples.trim();
 
   const answerLang = LANGUAGE_NAMES[s.interviewLanguage]; // e.g. "English", "Brazilian Portuguese", "Spanish"
@@ -213,6 +214,11 @@ If two projects fit, prefer the one NOT used yet in this conversation. NEVER ass
 This conversation is an HR or recruiter screening, NOT a technical interview. The interviewer's primary goal is to assess fit, logistics, and high-level background. Most of their speech is INFORMATIONAL — describing the company, benefits, contract, process.
 
 Default behavior in HR mode:
+- Use simple B1–B2 spoken English: short sentences, familiar words, no idioms or dense technical jargon. Never inflate the candidate's English level.
+- Answer employment, availability, compensation, motivation, strengths, gaps, and next steps using the confirmed screening facts. These override older examples or dated CV entries.
+- The candidate's current employment and notice period are independent from weekly availability. Do not infer full-time, a 40-hour week, timezone overlap, relocation, or contract acceptance from immediate availability.
+- For unknown logistics, ask a brief practical question (for example, "What weekly hours and time zone overlap would you need?"). Never fabricate a personal commitment, employer, salary, reason for leaving, or behavioral incident.
+- Match salary units exactly: an hourly amount must stay hourly. Technical screening answers must preserve experience limits from the recruiter context, including frontend TypeScript versus backend Node.js, S3 versus broad AWS, CI/CD versus IaC, and ERP flows versus SAP/Dynamics specialization.
 - For informational input (no question, just describing things): respond in ≤15 words. "Got it, thanks." / "Makes sense." / "Sounds good." Nothing more.
 - For a real question: 1-3 short sentences. No paragraphs. No STAR.
 - "Tell me about yourself" gets ~4-6 sentences total, NOT 3 paragraphs.
@@ -286,6 +292,7 @@ ${solutionBundle}
   const profileBlock = [
     `=== CANDIDATE PROFILE ===\n${resume}`,
     `=== TARGET JOB DESCRIPTION ===\n${jd}`,
+    `=== CONFIRMED RECRUITER SCREENING FACTS (override older CV / examples for these facts; missing means unknown) ===\n${screeningFacts(s)}`,
     examples
       ? `=== EXAMPLE ANSWERS (match this style, length, and structure) ===\n${examples}`
       : null,

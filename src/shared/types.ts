@@ -52,6 +52,11 @@ export interface AppSettings {
   vocabularyHints: string;
   examples: string;
   hrExamples: string;
+  hrPreparedQuestions: import('./hrPreparation').HrQuestion[];
+  recruiterContext: string;
+  employmentSituation: string;
+  noticePeriod: string;
+  weeklyAvailability: string;
   solutionPath: string;
   showTranslation: boolean;
   answerLength: AnswerLength;

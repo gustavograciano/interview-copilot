@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { AppSettings, ModelOption, SolutionInfo, ToneOption } from '../shared/types';
 import { listAudioInputDevices } from './audio';
+import { recruiterPreset } from '../shared/hrPreparation';
 
 const MODELS: { value: ModelOption; label: string }[] = [
   { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 — fastest, recommended' },
@@ -199,6 +200,27 @@ export function Settings() {
             </div>
           )}
         </div>
+      </Section>
+
+      <Section title="Preparação para a recrutadora">
+        <p style={s.help}>Ativa respostas curtas em inglês, tradução em português e geração manual. Registre abaixo sua situação e o contexto confirmado com a recrutadora. Seus dados ficam nas configurações locais.</p>
+        <button style={s.btn} onClick={() => {
+          const preset = recruiterPreset();
+          setSettings({ ...settings, ...preset });
+          setDirty((d) => new Set([...d, ...Object.keys(preset) as (keyof AppSettings)[]]));
+        }}>Ativar preparação RH (depois clique Save)</button>
+        <Field label="Situação profissional atual (resposta em inglês)">
+          <textarea style={s.textarea} rows={2} value={settings.employmentSituation} onChange={(e) => update('employmentSituation', e.target.value)} />
+        </Field>
+        <Field label="Início / aviso prévio (resposta em inglês)">
+          <input style={s.input} value={settings.noticePeriod} onChange={(e) => update('noticePeriod', e.target.value)} />
+        </Field>
+        <Field label="Horas semanais e disponibilidade de horário (confirme antes de prometer)">
+          <input style={s.input} value={settings.weeklyAvailability} placeholder="Ainda não informado" onChange={(e) => update('weeklyAvailability', e.target.value)} />
+        </Field>
+        <Field label="Contexto confirmado com a recrutadora">
+          <textarea style={s.textarea} rows={8} value={settings.recruiterContext} onChange={(e) => update('recruiterContext', e.target.value)} />
+        </Field>
       </Section>
 
       <Section title="Candidate profile (CV)">
@@ -421,7 +443,7 @@ A: ...`}
           value={settings.hrExamples}
           onChange={(e) => update('hrExamples', e.target.value)}
           rows={10}
-          placeholder={`Short Q:/A: pairs for recruiter screening calls — logistics, salary, notice period, contract type, English level, etc. Used ONLY when the overlay is in HR mode. If left blank, the technical examples are used as fallback.\n\nQ: What are your salary expectations?\nA: I'm looking for around USD 4,000 per month for a senior remote role. Flexible depending on the overall package.\n\nQ: What's your notice period?\nA: Standard 30-day notice in Brazil. I can transition within 30 days of signing.`}
+          placeholder="Exemplos opcionais Q:/A: para ajustar o estilo. Situação profissional, disponibilidade, nível de inglês e remuneração vêm do contexto confirmado acima. Não insira dados fictícios."
           style={s.textarea}
         />
         <p style={s.help}>

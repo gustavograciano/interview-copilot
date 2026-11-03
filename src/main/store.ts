@@ -8,6 +8,11 @@ interface PersistedShape {
   vocabularyHints: string;
   examples: string;
   hrExamples: string;
+  hrPreparedQuestions: AppSettings['hrPreparedQuestions'];
+  recruiterContext: string;
+  employmentSituation: string;
+  noticePeriod: string;
+  weeklyAvailability: string;
   showTranslation: boolean;
   answerLength: AnswerLength;
   triggerMode: TriggerMode;
@@ -35,6 +40,11 @@ const store = new Store<PersistedShape>({
     vocabularyHints: '',
     examples: '',
     hrExamples: '',
+    hrPreparedQuestions: [],
+    recruiterContext: '',
+    employmentSituation: '',
+    noticePeriod: '',
+    weeklyAvailability: '',
     showTranslation: false,
     answerLength: 'concise',
     triggerMode: 'auto',
@@ -60,6 +70,11 @@ export function getSettings(): AppSettings {
     vocabularyHints: store.get('vocabularyHints'),
     examples: store.get('examples'),
     hrExamples: store.get('hrExamples'),
+    hrPreparedQuestions: store.get('hrPreparedQuestions'),
+    recruiterContext: store.get('recruiterContext'),
+    employmentSituation: store.get('employmentSituation'),
+    noticePeriod: store.get('noticePeriod'),
+    weeklyAvailability: store.get('weeklyAvailability'),
     showTranslation: store.get('showTranslation'),
     answerLength: store.get('answerLength'),
     triggerMode: store.get('triggerMode'),
@@ -87,6 +102,11 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
     'vocabularyHints',
     'examples',
     'hrExamples',
+    'hrPreparedQuestions',
+    'recruiterContext',
+    'employmentSituation',
+    'noticePeriod',
+    'weeklyAvailability',
     'showTranslation',
     'answerLength',
     'triggerMode',
