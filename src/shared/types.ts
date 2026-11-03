@@ -53,6 +53,7 @@ export interface AppSettings {
   examples: string;
   hrExamples: string;
   hrPreparedQuestions: import('./hrPreparation').HrQuestion[];
+  technicalPreparedQuestions: import('./hrPreparation').HrQuestion[];
   recruiterContext: string;
   employmentSituation: string;
   noticePeriod: string;

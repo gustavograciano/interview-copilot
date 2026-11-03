@@ -118,10 +118,16 @@ In **Settings → Auto-typer**:
 
 ### Recruiter screening preparation
 
-Use **Preparação RH** to review common screening questions in English and
+Use **Preparação RH / Técnica** to review screening and technical questions in English and
 Portuguese. Prepared answers are stored in local settings; reviewing them does
 not use audio or API credits. **Praticar esta pergunta com IA** generates an
 answer using the saved CV and recruiter context.
+
+Choose **Perguntas de RH** or **Perguntas técnicas** inside preparation. Practicing
+a question selects the matching interview style, so technical practice uses the
+technical examples and recruiter practice uses HR examples. Live Coding follows
+the problem's explicit language; otherwise it uses the current role rather than
+defaulting to the candidate's historical primary stack.
 
 In **Settings → Preparação para a recrutadora**, confirm current employment,
 start date, weekly availability and the facts already shared with the recruiter.

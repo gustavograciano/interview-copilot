@@ -9,6 +9,7 @@ interface PersistedShape {
   examples: string;
   hrExamples: string;
   hrPreparedQuestions: AppSettings['hrPreparedQuestions'];
+  technicalPreparedQuestions: AppSettings['technicalPreparedQuestions'];
   recruiterContext: string;
   employmentSituation: string;
   noticePeriod: string;
@@ -41,6 +42,7 @@ const store = new Store<PersistedShape>({
     examples: '',
     hrExamples: '',
     hrPreparedQuestions: [],
+    technicalPreparedQuestions: [],
     recruiterContext: '',
     employmentSituation: '',
     noticePeriod: '',
@@ -71,6 +73,7 @@ export function getSettings(): AppSettings {
     examples: store.get('examples'),
     hrExamples: store.get('hrExamples'),
     hrPreparedQuestions: store.get('hrPreparedQuestions'),
+    technicalPreparedQuestions: store.get('technicalPreparedQuestions'),
     recruiterContext: store.get('recruiterContext'),
     employmentSituation: store.get('employmentSituation'),
     noticePeriod: store.get('noticePeriod'),
@@ -103,6 +106,7 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
     'examples',
     'hrExamples',
     'hrPreparedQuestions',
+    'technicalPreparedQuestions',
     'recruiterContext',
     'employmentSituation',
     'noticePeriod',

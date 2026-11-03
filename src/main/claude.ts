@@ -25,9 +25,7 @@ function buildSystemBlocks(): Anthropic.Messages.TextBlockParam[] {
   const s = getSettings();
   const resume = s.resume.trim() || '[No resume configured — open Settings]';
   const jd = s.jobDescription.trim() || '[No job description configured — open Settings]';
-  // In HR mode, prefer the short HR-style examples; fall back to the technical
-  // examples if no HR examples are configured. In technical mode, use the
-  // technical examples.
+  // Keep HR and technical examples separate, including when HR has no examples.
   const examples =
     s.interviewStyle === 'hr'
       ? s.hrExamples.trim()
@@ -83,6 +81,7 @@ The interviewer can SEE the candidate; long on-screen prose forces visible readi
   const instructions = `You are an interview assistant for a senior software developer.
 
 ## LANGUAGE — non-negotiable
+For English answers, use clear B1–B2 spoken English with short sentences and familiar words. Keep necessary technical terms precise. Never inflate the candidate's English level or turn a hypothetical approach into a past achievement.
 The candidate's spoken answer MUST be written in ${answerLang}, regardless of the language of the example answers, the résumé, or the job description below. Those reference materials may be in English; you still answer in ${answerLang}. The "## If they probe" reserve bullets are also in ${answerLang}.${
     s.interviewLanguage === 'pt'
       ? ' Use natural Brazilian Portuguese as a native senior engineer would speak in an interview — not literal translation.'
@@ -162,10 +161,10 @@ FIRST, classify the question into one of these categories:
 
 2. BEHAVIORAL / STORY (e.g., "Tell me about a time...", "Describe a challenge...", "How did you handle..."):
    → STAR structure: Situation → Task → Action → Result.
-   → 2-3 short paragraphs. Cite ONE specific project with metrics.
+   → Brief STAR structure within the selected answer-length budget. Cite ONE documented project; include metrics only when confirmed in the profile.
 
 3. TECHNICAL / DESIGN (e.g., "How would you design...", "Explain X", "What's the difference between..."):
-   → 2-3 paragraphs. Structure: approach + ONE concrete example with realistic inputs/outputs + trade-offs.
+   → Respect the selected answer-length budget. Cover approach, a small relevant example and a trade-off without forcing long paragraphs.
    → ALWAYS include a concrete example, even brief: "For instance, an upstream 502 becomes a domain UpstreamUnavailableException with correlation ID logged, returned as 503 to the caller."
    → Use precise production terminology when applicable (see checklist below).
 
@@ -177,7 +176,7 @@ FIRST, classify the question into one of these categories:
    These terms signal seniority. Pick the 2-3 that genuinely apply. BUT: only present a pattern as something the candidate DID if the profile confirms it. Otherwise present it as how they WOULD approach the problem. Understanding ≠ claiming a past implementation.
 
 4. SELF-INTRO ("Tell me about yourself", "Walk me through your background"):
-   → 3 short paragraphs: experience summary → 1-2 standout projects → fit with role.
+   → Experience summary, one relevant project and fit with the active role, within the selected answer-length budget.
 
 5. PREFERENCE / VALUES ("What's your ideal team size?", "Why this company?"):
    → 1 short paragraph. Honest, direct. Project reference only if it illustrates the preference.
@@ -492,7 +491,7 @@ For every request, structure your reply in EXACTLY this format (use markdown hea
 2-4 sentences: the strategy, its time and space complexity, and explicitly WHY this approach over the main alternative — the concrete trade-off being made. This is the justification the candidate needs to be able to articulate if asked to defend the choice, so make it specific and grounded in this problem, not generic.
 
 ## Solution
-A single fenced code block in the language the candidate is using (default to C# / .NET if not specified, since that is their primary stack). Production-quality code, not toy code. Comments only where they clarify intent.
+A single fenced code block in the language explicitly requested by the interviewer or already used in the supplied problem/solution. When no language is specified, choose from the ACTIVE TARGET ROLE below, not from the candidate's historical primary stack. For a Python or TypeScript/Node.js role, prefer Python unless the problem or interviewer indicates TypeScript/JavaScript. If there is no role context or it does not identify a suitable language, briefly ask which language to use. Production-quality code, not toy code. Comments only where they clarify intent.
 
 ## Sanity check (MANDATORY — do NOT skip)
 Before finishing, mentally execute the code against ONE concrete sample. Show:
@@ -512,9 +511,11 @@ While tracing, verify these common bug classes — if you find any, FIX the Solu
 
 For follow-up turns, you may skip "Approach" but ALWAYS include "Sanity check" — that is the most common reason candidates lose points.`;
 
-  const profileBlock = resume
-    ? `=== CANDIDATE PROFILE (use to tailor language choice and style) ===\n${resume}`
-    : '';
+  const profileBlock = [
+    `=== ACTIVE TARGET ROLE (takes precedence over CV when choosing an unspecified code language) ===\n${s.jobDescription.trim() || '[No target role configured — ask which code language to use]'}`,
+    `=== CONFIRMED SCREENING FACTS (respect experience limits) ===\n${screeningFacts(s)}`,
+    resume ? `=== CANDIDATE PROFILE (historical experience, not the target role stack) ===\n${resume}` : '',
+  ].filter(Boolean).join('\n\n');
 
   // Referenced solution (same bundle the interview prompt sees). Enables
   // "the interviewer asked me to change X in my dashboard" turns to produce a

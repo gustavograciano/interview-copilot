@@ -423,7 +423,7 @@ export function Overlay() {
     <div style={styles.container}>
       <div className="workspace-tabs">
         <button aria-pressed={!preparing} onClick={() => setPreparing(false)}>Entrevista ao vivo</button>
-        <button aria-pressed={preparing} onClick={() => setPreparing(true)}>Preparação RH</button>
+        <button aria-pressed={preparing} onClick={() => setPreparing(true)}>Preparação RH / Técnica</button>
         {!settings?.recruiterContext && <button disabled={presetBusy} onClick={async () => {
           setPresetBusy(true);
           try {
@@ -619,11 +619,11 @@ export function Overlay() {
             : undefined
         }
       >
-        {preparing && settings ? <HrPreparation settings={settings} onPractice={async (q) => {
+        {preparing && settings ? <HrPreparation settings={settings} onPractice={async (q, style) => {
           try {
-            const updated = await window.api.saveSettings({ interviewStyle: 'hr', interviewLanguage: 'en', showTranslation: true, answerLength: 'concise' });
+            const updated = await window.api.saveSettings({ interviewStyle: style, interviewLanguage: 'en', showTranslation: true, answerLength: 'concise' });
             setSettings(updated);
-            setInterviewStyle('hr');
+            setInterviewStyle(style);
             setInterviewLanguage('en');
             setPreparing(false);
             modeRef.current = 'interview';

@@ -20,12 +20,12 @@ const settings = {
   jobDescription: 'Backend integrations', examples: 'TECHNICAL_EXAMPLE_SHOULD_NOT_LEAK', hrExamples: '',
   recruiterContext: 'Compensation: USD 38 per hour. English: intermediate B1–B2. SAP is not a specialty.',
   employmentSituation: 'I am a freelancer without active contracts.', noticePeriod: 'I can start immediately.',
-  weeklyAvailability: '', hrPreparedQuestions: [], activeTestContext: '',
+  weeklyAvailability: '', hrPreparedQuestions: [], technicalPreparedQuestions: [], activeTestContext: '',
 };
 const claude = load('src/main/claude.ts', {
   '@anthropic-ai/sdk': {}, '../shared/types': types, './store': { getSettings: () => settings },
   './solution': { getSolutionBundle: () => '' }, './sessionLog': {}, '../shared/hrPreparation': hr,
-}, '\nexports.buildSystemBlocksForTest = buildSystemBlocks;');
+}, '\nexports.buildSystemBlocksForTest = buildSystemBlocks; exports.buildCodingBlocksForTest = buildCodingSystemBlocks;');
 const prompt = claude.buildSystemBlocksForTest().map((b) => b.text).join('\n');
 assert.match(prompt, /USD 38 per hour/);
 assert.match(prompt, /B1–B2/);
@@ -45,6 +45,9 @@ assert.equal(questions.length, 21);
 assert.equal(new Set(questions.map((q) => q.id)).size, questions.length);
 assert.equal(questions.find((q) => q.id === 'employment').answer, settings.employmentSituation);
 assert.equal(questions.find((q) => q.id === 'hours').answer, '');
+const clarification = { ...questions.find((q) => q.id === 'hours'), answer: 'What weekly hours would you need?' };
+assert.equal(hr.hrQuestions({ ...settings, hrPreparedQuestions: [clarification] }).find((q) => q.id === 'hours').answer, clarification.answer);
+assert.equal(hr.hrQuestions({ ...settings, weeklyAvailability: 'Twenty hours per week.', hrPreparedQuestions: [clarification] }).find((q) => q.id === 'hours').answer, 'Twenty hours per week.');
 const saved = { ...questions[0], answer: 'A real, confirmed introduction.' };
 const personalized = hr.hrQuestions({ ...settings, hrPreparedQuestions: [saved] });
 assert.equal(personalized[0].answer, saved.answer);
@@ -52,4 +55,16 @@ personalized[0].answer = 'Edited';
 assert.equal(saved.answer, 'A real, confirmed introduction.');
 settings.interviewStyle = 'technical';
 assert.match(claude.buildSystemBlocksForTest().map((b) => b.text).join('\n'), /TECHNICAL_EXAMPLE_SHOULD_NOT_LEAK/);
-console.log('HR checks passed: prompt grounding, missing logistics, mode isolation, translations, local preparation and immutable settings.');
+settings.jobDescription = 'CURRENT ROLE: Python OR TypeScript/Node.js ERP integrations. ROLE_MARKER';
+settings.resume = 'Candidate historical primary stack is C# and .NET. RESUME_MARKER';
+const codingPrompt = claude.buildCodingBlocksForTest().map((b) => b.text).join('\n');
+assert.match(codingPrompt, /ROLE_MARKER/);
+assert.match(codingPrompt, /RESUME_MARKER/);
+assert.match(codingPrompt, /choose from the ACTIVE TARGET ROLE/);
+assert.match(codingPrompt, /prefer Python unless/);
+assert.match(codingPrompt, /language explicitly requested by the interviewer/);
+assert.doesNotMatch(codingPrompt, /default to C# \/ .NET/);
+assert.match(codingPrompt, /USD 38 per hour/);
+settings.jobDescription = '';
+assert.match(claude.buildCodingBlocksForTest().map((b) => b.text).join('\n'), /No target role configured/);
+console.log('Screening checks passed: grounding, mode isolation, missing logistics, prepared answers and role-aware coding language.');

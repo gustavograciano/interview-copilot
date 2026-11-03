@@ -166,7 +166,7 @@ export function hrQuestions(s: Pick<AppSettings, 'employmentSituation' | 'notice
     };
     if (q.id === 'employment') result.answer = s.employmentSituation.trim();
     if (q.id === 'start') result.answer = s.noticePeriod.trim();
-    if (q.id === 'hours') result.answer = s.weeklyAvailability.trim();
+    if (q.id === 'hours') result.answer = s.weeklyAvailability.trim() || result.answer;
     if (saved && result.answer !== saved.answer) result.answerPt = 'Resposta atualizada nas configurações. Confira o texto em inglês acima.';
     return result;
   });
