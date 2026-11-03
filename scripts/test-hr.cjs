@@ -14,6 +14,13 @@ function load(file, stubs = {}, expose = '') {
 }
 
 const hr = load('src/shared/hrPreparation.ts');
+const style = load('src/shared/answerStyle.ts');
+const position = load('src/shared/windowPosition.ts');
+const monitors = [{ x: 0, y: 0, width: 1920, height: 1040 }, { x: -1920, y: 0, width: 1920, height: 1080 }];
+assert.deepEqual(position.visibleOverlayPosition({ x: 500, y: 120 }, monitors), { x: 500, y: 120 });
+assert.deepEqual(position.visibleOverlayPosition({ x: -1500, y: 80 }, monitors), { x: -1500, y: 80 });
+assert.deepEqual(position.visibleOverlayPosition({ x: 9000, y: 9000 }, monitors), { x: 20, y: 40 });
+assert.deepEqual(position.visibleOverlayPosition({ x: NaN, y: 80 }, monitors), { x: 20, y: 40 });
 const types = load('src/shared/types.ts');
 const settings = {
   ...hr.recruiterPreset(), resume: 'Existing CV with an older employer',
@@ -25,6 +32,7 @@ const settings = {
 const claude = load('src/main/claude.ts', {
   '@anthropic-ai/sdk': {}, '../shared/types': types, './store': { getSettings: () => settings },
   './solution': { getSolutionBundle: () => '' }, './sessionLog': {}, '../shared/hrPreparation': hr,
+  '../shared/answerStyle': style,
 }, '\nexports.buildSystemBlocksForTest = buildSystemBlocks; exports.buildCodingBlocksForTest = buildCodingSystemBlocks;');
 const prompt = claude.buildSystemBlocksForTest().map((b) => b.text).join('\n');
 assert.match(prompt, /USD 38 per hour/);
@@ -36,6 +44,14 @@ assert.match(prompt, /override older CV/);
 assert.match(prompt, /<<<TRANSLATION>>>/);
 assert.match(prompt, /in English/);
 assert.doesNotMatch(prompt, /TECHNICAL_EXAMPLE_SHOULD_NOT_LEAK/);
+assert.match(prompt, /SPOKEN DELIVERY/);
+assert.match(prompt, /natural contractions/);
+assert.match(prompt, /at most 45 words/);
+assert.match(prompt, /Do not append reserve notes in concise mode/);
+assert.doesNotMatch(prompt, /These terms signal seniority|ALWAYS include a concrete example|~90 words/);
+settings.tone = 'formal';
+assert.match(claude.buildSystemBlocksForTest().map((b) => b.text).join('\n'), /Formal does not mean complex or verbose/);
+settings.tone = 'conversational';
 const empty = hr.screeningFacts({ recruiterContext: '', employmentSituation: '', noticePeriod: '', weeklyAvailability: '' });
 assert.equal((empty.match(/NOT PROVIDED/g) || []).length, 3);
 assert.equal(Object.hasOwn(hr.recruiterPreset(), 'resume'), false);

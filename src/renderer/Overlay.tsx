@@ -421,6 +421,11 @@ export function Overlay() {
 
   return (
     <div style={styles.container}>
+      <div className="overlay-drag-bar" title="Arraste esta barra para mover a janela">
+        <span aria-hidden="true">⠿</span>
+        <span>Interview Copilot</span>
+        <span className="overlay-drag-hint">Arraste para mover</span>
+      </div>
       <div className="workspace-tabs">
         <button aria-pressed={!preparing} onClick={() => setPreparing(false)}>Entrevista ao vivo</button>
         <button aria-pressed={preparing} onClick={() => setPreparing(true)}>Preparação RH / Técnica</button>

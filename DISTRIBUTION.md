@@ -129,6 +129,11 @@ technical examples and recruiter practice uses HR examples. Live Coding follows
 the problem's explicit language; otherwise it uses the current role rather than
 defaulting to the candidate's historical primary stack.
 
+With **Conversational + Concise**, live answers use short spoken sentences,
+ordinary verbs and natural contractions. Technical answers normally stay within
+45 words; extra examples and reserve notes wait for a follow-up. Formal tone
+remains polite and plain. Career claims still require confirmed profile facts.
+
 In **Settings → Preparação para a recrutadora**, confirm current employment,
 start date, weekly availability and the facts already shared with the recruiter.
 **Ativar preparação RH** selects short English answers, Portuguese translation

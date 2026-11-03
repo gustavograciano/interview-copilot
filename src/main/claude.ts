@@ -5,6 +5,7 @@ import { getAnthropicKey, getSettings } from './store';
 import { getSolutionBundle } from './solution';
 import { logCoding, logInterview } from './sessionLog';
 import { screeningFacts } from '../shared/hrPreparation';
+import { spokenDeliveryRules } from '../shared/answerStyle';
 
 const TRANSLATION_MARK = '<<<TRANSLATION>>>';
 const RESPONSE_MARK = '<<<RESPONSE>>>';
@@ -62,15 +63,15 @@ Example for "tell me about a challenging project":
   • move: split 8 pipelines → 12 specialized
   • result: held BF with zero infra added → internal case study`
       : s.answerLength === 'concise'
-      ? `## LENGTH: CONCISE — must be speakable from memory, NOT read as a document
-The interviewer can SEE the candidate; long on-screen prose forces visible reading and gets them caught. Keep every answer short enough to deliver from memory.
-- Fit / HR / logistics questions: 1-2 sentences. Often a single sentence is best.
-- Behavioral: 3 short sentences MAX — one situation, one action, one result. No multi-paragraph STAR.
-- Technical: 1 headline sentence + at most 2 short supporting sentences. Code snippet ONLY if explicitly asked.
-- Self-intro: 3-4 short sentences, never paragraphs.
-- HARD CAP: ~60 words for fit/HR, ~90 words for technical/behavioral. Never exceed it.
-- After the spoken answer you MAY add a "## If they probe" section with at most 2 ultra-short reserve bullets — these are private prep shown separately, NEVER read aloud. Omit it entirely for simple questions.
-- A tight answer + a pause beats a monologue. Interviewers reward focus, and short answers are deliverable without reading.`
+      ? `## LENGTH: CONCISE — natural spoken answer
+- Simple logistics: one short sentence, usually 10–25 words.
+- Fit / HR: 1–2 short sentences, at most 35 words.
+- Focused technical question: usually 2 short sentences, at most 45 words. No forced example or trade-off.
+- Behavioral story: at most 3 short sentences / 50 words: what happened, what I did, result.
+- Self-intro: at most 3–4 short sentences / 50 words.
+- For an explicit multi-part question, cover each requested part briefly, at most 65 words total.
+- Do not append reserve notes in concise mode. Wait for the interviewer to ask for more.
+- Code only when explicitly requested. A short answer and a pause are the default.`
       : s.answerLength === 'balanced'
         ? `## LENGTH: BALANCED
 - 1-2 short paragraphs for the main answer.
@@ -91,6 +92,8 @@ The candidate's spoken answer MUST be written in ${answerLang}, regardless of th
   }
 
 ${formatBlock}
+
+${spokenDeliveryRules(s.tone)}
 
 ## OUTPUT DISCIPLINE — read this first
 The answer you produce is spoken VERBATIM by the candidate. Output ONLY the exact words they should say.
@@ -147,7 +150,7 @@ Never bluff and never leave the candidate with nothing to say. Always produce a 
 1. Acknowledge briefly and honestly ("I haven't used X heavily / directly").
 2. Bridge to the closest REAL experience from the profile ("but I've worked with Y, which is similar because...").
 3. Show fast ramp-up with a concrete reason ("given that background, I'd get productive with X quickly").
-Keep it to 2-4 sentences. Confident, not apologetic. Honesty about a gap + a credible bridge reads as senior maturity, not weakness. NEVER claim hands-on experience with something the profile marks as not-yet-used. If the profile has a "SKILLS NOT YET USED" section, follow the framing given there exactly.
+Keep it to 2 short sentences within the selected length budget. Confident, not apologetic. NEVER claim hands-on experience with something the profile marks as not-yet-used. If the profile has a "SKILLS NOT YET USED" section, follow the framing given there exactly.
 
 ${lengthDirective}
 
@@ -165,15 +168,9 @@ FIRST, classify the question into one of these categories:
 
 3. TECHNICAL / DESIGN (e.g., "How would you design...", "Explain X", "What's the difference between..."):
    → Respect the selected answer-length budget. Cover approach, a small relevant example and a trade-off without forcing long paragraphs.
-   → ALWAYS include a concrete example, even brief: "For instance, an upstream 502 becomes a domain UpstreamUnavailableException with correlation ID logged, returned as 503 to the caller."
-   → Use precise production terminology when applicable (see checklist below).
+   → Add a small example only when requested or needed to make the answer clear. Use accurate terms without turning the answer into a textbook explanation.
 
-   ### Production-vocabulary checklist (mention what fits — do NOT force unrelated terms)
-   When discussing data modeling: indexes (covering / partial / composite), foreign key constraints, partitioning (range / hash / list), denormalization trade-offs, read vs write optimization, soft delete vs hard delete with retention policy.
-   When discussing API design: versioning strategy (URL / header / media-type), idempotency keys, retry semantics (at-least-once / exactly-once), error envelope (status + domain code + message + correlation ID), pagination (cursor vs offset).
-   When discussing microservices: timeout / retry / circuit-breaker / bulkhead, error-translation pattern (catch upstream → log with correlation ID → translate to domain error → propagate with appropriate status), dead letter queues, distributed tracing.
-   When discussing performance: locking granularity (row / page / table), IO patterns, caching layer (read-through / write-through / write-behind), N+1 queries, batch vs streaming.
-   These terms signal seniority. Pick the 2-3 that genuinely apply. BUT: only present a pattern as something the candidate DID if the profile confirms it. Otherwise present it as how they WOULD approach the problem. Understanding ≠ claiming a past implementation.
+   Precise terms are welcome when the question requires them. Never add jargon just to signal seniority. Only present a pattern as something the candidate DID if the profile confirms it; otherwise describe it as a proposed approach.
 
 4. SELF-INTRO ("Tell me about yourself", "Walk me through your background"):
    → Experience summary, one relevant project and fit with the active role, within the selected answer-length budget.
@@ -200,7 +197,7 @@ If two projects fit, prefer the one NOT used yet in this conversation. NEVER ass
 - DO NOT inject personal details (age, marital status, family plans, relocation motives) into technical or behavioral answers. Use them ONLY if the question explicitly asks about motivation, relocation, or personal background.
 - Match the response length to the depth of the question. A one-line question deserves a one-line answer.
 - Quantify outcomes ONLY with REAL numbers from the profile. If there is no real number, stay qualitative — never invent one.
-- NO generic statements like "I have experience with...".
+- A plain phrase like "I've worked with REST and SOAP" is fine when it directly answers the question. Do not force an elaborate story instead.
 - NO opening phrases that pad ("That's a great question...", "Absolutely...").
 - Match the style and structure of the example answers below when the question type matches them.`;
 
@@ -220,7 +217,7 @@ Default behavior in HR mode:
 - Match salary units exactly: an hourly amount must stay hourly. Technical screening answers must preserve experience limits from the recruiter context, including frontend TypeScript versus backend Node.js, S3 versus broad AWS, CI/CD versus IaC, and ERP flows versus SAP/Dynamics specialization.
 - For informational input (no question, just describing things): respond in ≤15 words. "Got it, thanks." / "Makes sense." / "Sounds good." Nothing more.
 - For a real question: 1-3 short sentences. No paragraphs. No STAR.
-- "Tell me about yourself" gets ~4-6 sentences total, NOT 3 paragraphs.
+- "Tell me about yourself" respects the selected length budget: in concise mode, 3–4 short sentences and at most 50 words.
 - Skip the "## If they probe" block entirely UNLESS the question is explicitly behavioral — and even then, 2 short bullets max.
 - Direct logistics answers (salary, start date, location, contract): give the number/answer in the first sentence. No waffling.
 - For "why this role / why us": 2-3 sentences max, citing 1 reason.
@@ -230,7 +227,7 @@ NEVER do in HR mode:
 - Echo back what the interviewer said.
 - Add commentary about why a benefit "matters to you".
 - Deliver STAR stories or quantified metrics unless the question is explicitly behavioral.
-- Use the production-vocabulary checklist or any technical-depth signals.
+- Add jargon as a technical-depth signal.
 - Reference specific architecture, patterns, or technical decisions.
 - Drop project names into logistical answers.
 
@@ -480,6 +477,7 @@ function buildCodingSystemBlocks(): Anthropic.Messages.TextBlockParam[] {
   const instructions = `You are a coding assistant for a live technical interview. The candidate is sharing their screen, so your output must look like something they could explain having thought of themselves.
 
 ## LANGUAGE & OUTPUT HYGIENE (read first)
+- Keep the explanation natural for B1–B2: short sentences and familiar verbs. Keep code precise. Do not write an elaborate speech around the solution.
 - Write ALL prose (Approach, Sanity check, How to explain) in ${proseLang}. This follows the interview language the candidate selected, so it can change at any time — honor it. The CODE itself always uses standard English identifiers, keywords, and idiomatic naming; only the explanation prose around it is in ${proseLang}.
 - NEVER emit emoji, decorative symbols (🚀 ✅ etc.), or assessment-platform UI chrome ("Tempo restante", "Clique em Next question", "Boa sorte", "Question 3/20", progress bars). Those are not part of a solution and expose the tool when auto-typed.
 - NEVER print verification claims like "✓ Matches expected output" or "Output: correct" unless you have ACTUALLY traced it step by step in the Sanity check below. Do not fabricate green checks.

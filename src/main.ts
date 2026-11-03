@@ -1,10 +1,12 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, session } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpcHandlers } from './main/ipc';
 import { registerHotkeys, unregisterHotkeys } from './main/hotkeys';
 import { initSolutionFromStore, getSolutionInfo } from './main/solution';
 import { IPC } from './shared/types';
+import { getSettings, saveSettings } from './main/store';
+import { visibleOverlayPosition } from './shared/windowPosition';
 
 if (started) app.quit();
 
@@ -34,19 +36,23 @@ function createOverlay() {
     overlayWin.focus();
     return;
   }
+  const position = visibleOverlayPosition(getSettings().overlayPosition, [
+    screen.getPrimaryDisplay().workArea,
+    ...screen.getAllDisplays().map((display) => display.workArea),
+  ]);
   overlayWin = new BrowserWindow({
     title: 'Interview Copilot',
     width: 760,
     height: 820,
     minWidth: 420,
     minHeight: 580,
-    x: 20,
-    y: 80,
+    ...position,
     transparent: true,
     alwaysOnTop: true,
     frame: false,
     skipTaskbar: true,
     resizable: true,
+    movable: true,
     backgroundColor: '#00000000',
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     webPreferences: {
@@ -61,6 +67,12 @@ function createOverlay() {
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
 
   loadRoute(overlayWin, '/overlay');
+
+  overlayWin.on('moved', () => {
+    if (!overlayWin || overlayWin.isDestroyed()) return;
+    const [x, y] = overlayWin.getPosition();
+    saveSettings({ overlayPosition: { x, y } });
+  });
 
   overlayWin.on('closed', () => {
     overlayWin = null;
